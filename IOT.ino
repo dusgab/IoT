@@ -7,10 +7,11 @@
 #include "SD.h"
 //--------------------DEFINICIONES--------------//
 //-------VARIABLES------//
-String humAct;                                             // VARIABLE QUE GUARDA LA HUMEDAD ACTUAL PARA GUARDEN LA SD
+//String HumAct;                                              // VARIABLE QUE GUARDA LA HUMEDAD ACTUAL PARA GUARDEN LA SD
 int HumMax = 60;                                           // VARIABLE DE HUMEDAD MAXIMA
 int HumMin = 30;                                           // VARIABLE DE HUMEDAD MINIMA
 String aGrabar;                                            // VARIABLE QUE SE GRABA EN LA SD
+//String aGrabar2;                                            // VARIABLE QUE SE GRABA EN LA SD
 int error;                                                 // VARIABLE QUE DETERMINA SI ES MAYOR(1) O MENOR(2) LA HUMEDAD
 int delay2 = 0;                                            // VARIABLE USADA PARA DETERMINAR EL TIEMPO ENTRE CADA LECTURA DE HUMEDAD
 char fecha[20];                                            // VARIABLE USADA PARA OBTENER FECHA Y HORA PARA EL GUARDADO EN LA SD
@@ -39,12 +40,22 @@ RTC_DS1307 rtc;
 //--------------------SETUP---------------------//
 //----------------------------------------------//
 void setup() {
-   // rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));      // LINEA COMENTADA SOLO SE OCUPA LA PRIMERA  VEZ PARA PONER EN HORA EL MODULO RTC
+   rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));      // LINEA COMENTADA SOLO SE OCUPA LA PRIMERA  VEZ PARA PONER EN HORA EL MODULO RTC
    Serial.begin(9600);                                     // INICIAMOS EL MONITOR SERIE PARA PRUEBAS
-   Serial.println("INICIO:");
+   Serial.println("INICIO MEDIDOR DE HUMEDAD:");
+    Serial.print("TEMPERATURA MAX :");
+     Serial.print(HumMax);
+      Serial.print("  ");
+     Serial.print("TEMPERATURA MIN:");
+      Serial.println(HumMin);
    pinMode(ledLectura,OUTPUT);                             // PIN QUE INDICA LECTURA
    pinMode(sd, OUTPUT);
    SD.begin(sd);
+   Wire.begin();
+   dht.begin();                                            // INICIA LECTOR DE HUMEDAD
+   Display.set();
+   Display.init();
+   Display.point(POINT_ON); 
    if (!SD.begin(sd)){                                     // COMPRUEBA QUE SE CONECTO A LA SD
       Serial.println("Se ha producido un fallo al iniciar la comunicación con la sd");
       return;
@@ -52,28 +63,29 @@ void setup() {
       Serial.println("Se ha iniciado la comunicación correctamente con la sd");
    }
    rtc.begin();
-   if (!rtc.begin()) {                                     // COMPRUEBA QUE SE CONECTO EL MODULO RTC 
+  if (!rtc.begin()) {                                     // COMPRUEBA QUE SE CONECTO EL MODULO RTC 
       Serial.println("Se ha producido un fallo en el modulo RTC");
-      while (1);
     }else {
       Serial.println("Se ha conectado correctamente el modulo RTC");
     }
-   dht.begin();                                            // INICIA LECTOR DE HUMEDAD
-   Display.set();
-   Display.init();
-   Display.point(POINT_ON); 
+   
 }
 
 //----------------------------------------------//
 //--------------------LOOP----------------------//
 //----------------------------------------------//
 void loop(){
- // leerHumedad();                                           // GRABA EN H LA HUMEDAD
-  mostrarHumedad(10.6);                                       // MUESTRA HUMEDAD POR DISPLAY  
-  
- // comprobacionYescritura();                                //
- // delayy();
- delay(500);
+  aGrabar = "";
+  aGrabar += dimeFecha();
+  aGrabar += HumMax;
+  aGrabar += HumMin;  
+  leerHumedad();                                           // GRABA EN H LA HUMEDAD
+  mostrarHumedad(h);                                       // MUESTRA HUMEDAD POR DISPLAY
+  escrituraSD(aGrabar);
+  //comprobacionYescritura();                                //
+  // delayy();
+   Serial.println("");Serial.println("");Serial.println("");Serial.println("");
+  delay(5000);
 }
 
 //-----------------------------------------------// 
@@ -86,7 +98,7 @@ void leerHumedad(){                                        // FUNCION : LECTURA 
       return;
    }
    digitalWrite(ledLectura, pinStateLectura);
-   Serial.print("Humidity: ");
+   Serial.print("Humedad Actual: ");
    Serial.print(h);
    Serial.print(" %\n");
    pinStateLectura = !pinStateLectura;
@@ -98,9 +110,9 @@ int Num;
 int decimal;
 Num = int(Num2);
 decimal = int((Num2 - Num) * 100);
-humAct += Num;
-humAct += decimal;
-Serial.print(aux);
+aGrabar += Num;
+aGrabar += decimal;
+//aGrabar2 += HumAct;
 
 int8_t Digit0 = Num %10 ;
 int8_t Digit1 = (Num % 100) / 10;
@@ -116,6 +128,8 @@ Display.display(Digits);                                    // MUESTRA EN DISPLA
 void escrituraSD(String texto) {                            // FUNCION ESCRITURA EN SD
   Archivo = SD.open("datos.txt", FILE_WRITE);
   if (Archivo) {
+    Serial.print("Esto se va a grabar : ");
+    Serial.println(texto);
   Archivo.println(texto);
   Archivo.close();
   }
@@ -125,8 +139,11 @@ void escrituraSD(String texto) {                            // FUNCION ESCRITURA
 }
 
 //-----------------------------------------------//
-String dimeFecha(){                                         // FUNCION : OBTENER DIA Y HORA         ----Serial.print(dimeFecha());
-  DateTime now = rtc.now(); //Obtener fecha y hora actual.
+String dimeFecha(){   
+   DateTime now = rtc.now(); //Obtener fecha y hora actual.
+ 
+ // FUNCION : OBTENER DIA Y HORA         ----Serial.print(dimeFecha());
+ 
   int dia = now.day();
   int mes = now.month();
   int anio = now.year();
