@@ -7,6 +7,8 @@
 #include "SD.h"
 //--------------------DEFINICIONES--------------//
 //-------VARIABLES------//
+int retardo = 300000;
+int retardo2 = 300000;
 //String HumAct;                                           // VARIABLE QUE GUARDA LA HUMEDAD ACTUAL PARA GUARDEN LA SD
 int HumMax = 60;                                           // VARIABLE DE HUMEDAD MAXIMA
 int HumMin = 30;                                           // VARIABLE DE HUMEDAD MINIMA
@@ -75,7 +77,7 @@ void loop(){
   leerHumedad();                                           // GRABA EN H LA HUMEDAD
   mostrarHumedad(h);                                       // MUESTRA HUMEDAD POR DISPLAY
   comprobacionYescritura();                                //
-  Serial.println(F("\n \n"));
+  Serial.println(F("\n \n"));                              //comentar
   
 }
 
@@ -85,14 +87,14 @@ void loop(){
 void leerHumedad(){                                        // FUNCION : LECTURA DE HUMEDAD
    h = dht.readHumidity();                                 // LEO HUMEDAD
    if (isnan(h)) {
-      Serial.println(F("Failed to read from DHT sensor!"));
+      Serial.println(F("ERROR al leer el lector DHT"));
       return;
-   }
+   }else {
    Serial.print(F("Humedad Actual: "));
    Serial.print(h);
    Serial.print(F(" %\n"));
   }
-  
+}
 //-----------------------------------------------//
 void mostrarHumedad( float Num2){                          // FUNCION : MUESTRA EN DISPLAY LA HUMEDAD
 int Num;
@@ -138,25 +140,33 @@ String dimeFecha(){                                               // FUNCION : O
 
 //------------------------------------------------//
 void comprobacionYescritura(){
-  if ((HumMax > h) and (h > HumMin)){
+  if ((HumMax > h) and (h > HumMin)){                               // COMPRUEBA SI LA HUMEDAD ESTA EN EL RANGO ACEPTABLE
     //SUPER
-                               // MUESTRA DIA Y HORA
-    //FALTA GENERAR EL STRING PARA GRABAR
-    Serial.println(F("HUMEDAD ACEPTABLE"));
-    aGrabar += "0"; 
-    escrituraSD(aGrabar);
-    delay(2000);
+    Serial.println(F("HUMEDAD ACEPTABLE"));                         // SI LO ESTA
+    aGrabar += "0";                                                 // TERMINA DE ARMAR EL STRING PARA GRABAR 
+    escrituraSD(aGrabar);                                           // GRABA LA SD 
+    if (retardo >= retardo2){retardo2 = retardo2 + 20000;}          // CONTADOR DE TIEMPO PARA REENVIAR MSJ
+    delay(20000);
     }else{
-     if (HumMax < h){
-      Serial.println(F("HUMEDAD POR ENCIMA DEL MAXIMO  "));
-      } else {
-      Serial.println(F("HUMEDAD POR DEBAJO DEL MINIMO "));}         // DETERMINA SI ES MAYOR O MENOR LA HUMEDAD
-    //PROBLEMAS
-    //FALTA GENERAR EL STRING PARA GRABAR Y GSM
+      //PROBLEMAS
+      aGrabar += "1";                                               // TERMINA DE ARMAR EL STRING PARA GRABAR 
+      escrituraSD(aGrabar);                                         // GRABA EN LA SD
+      if (HumMax < h){                                              // SI LA HUMEDAD ES MAYOR A MAXIMO ?
+       Serial.println(F("HUMEDAD POR ENCIMA DEL MAXIMO  "));        // SI LO ES NOS MUESTRA
+      if (retardo <= retardo2){                                     // COMPRUEBA SI EL TIEMPO DE RETARDO DE REENVIO DE MSJ
+        //enviar mensaje con alerta maximo                          // YA PASO
+        retardo2 = 0;
+        }
+      } else {                                                     // SI NO ES MAYOR , ES MENOR
+      Serial.println(F("HUMEDAD POR DEBAJO DEL MINIMO "));         // NOS MUESTRA
+      if (retardo <= retardo2){                                    // COMPRUEBA SI EL TIEMPO DE RETARDO DE REENVIO DE MSJ
+       // enviar mensaje con alerta minimo                         // YA PASO
+       retardo2 = 0;
+        }
+      }
+      if (retardo >= retardo2){retardo2 = retardo2 + 5000;}        // RETARDO
     
-    aGrabar += "1";                         // MUESTRA DIA Y HORA
-    escrituraSD(aGrabar);
-    delay(500);
+    delay(5000);
     }
 }
 
