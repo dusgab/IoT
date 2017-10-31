@@ -5,11 +5,11 @@
 #include "Time.h"
 #include "DHT.h"
 #include "TM1637.h"
-#include "SD.h"
+#include <SD.h>
 //--------------------DEFINICIONES--------------//
 //-------VARIABLES------//
-int retardo = 3000;                                      //RETARDO PARA MANDAR UN MSJ CADA 5 MINUTOS SIM900
-int retardo2 = 3000;                                     //RETARDO PARA MANDAR UN MSJ CADA 5 MINUTOS SIM900
+int retardo = 3000;                                        //RETARDO PARA MANDAR UN MSJ CADA 5 MINUTOS SIM900
+int retardo2 = 3000;                                       //RETARDO PARA MANDAR UN MSJ CADA 5 MINUTOS SIM900
 char incoming_char = 0;                                    //Variable que guarda los caracteres que envia el SIM900
 String mensaje = "";                                       //USADA PARA CAPTURAR EL SERIAL PARA EL SIM900
 String mensajecorto = "";                                  //PARA GUARDAR MSJ DE MAX Y MIN EN  SIM900
@@ -48,9 +48,8 @@ RTC_DS1307 rtc;
 void setup() {
    
    Serial.begin(19200);                                     // INICIAMOS EL MONITOR SERIE PARA PRUEBAS
-   
    inicializaSIM900();                                     // INICIALIZA SIM900
-   pinMode(sd, OUTPUT);
+   /*pinMode(sd, OUTPUT);
    SD.begin(sd);
    Wire.begin();
    dht.begin();                                            // INICIA LECTOR DE HUMEDAD
@@ -67,7 +66,7 @@ void setup() {
       Serial.println(F("Error en el modulo RTC"));
     }else {
       Serial.println(F("Conectado correctamente el modulo RTC"));
-    }
+    }*/
    //rtc.adjust(DateTime(F(__DATE__),F(__TIME__)));      // LINEA COMENTADA SOLO SE OCUPA LA PRIMERA  VEZ PARA PONER EN HORA EL MODULO RTC
    Serial.println(F("INICIO MEDIDOR DE HUMEDAD:"));
    Serial.println(F("RANGO DE HUMEDAD :"));
@@ -87,8 +86,8 @@ void loop(){
     //Serial.print(incoming_char); //Mostramos el carácter en el monitor serie
     mensaje = mensaje + incoming_char ; // Añadimos el carácter leído al mensaje
     delay(25);
-  }else{
-    Serial.println(SIM900.available());
+  }else{Serial.println(SIM900.available());
+    
     int bandera = mensaje.indexOf("MAX");
     if (bandera >= 0){
     leer_sms();}
@@ -97,8 +96,9 @@ void loop(){
   aGrabar += HumMax;
   aGrabar += HumMin;  
   leerHumedad();                                           // GRABA EN H LA HUMEDAD
-  mostrarHumedad(h);                                       // MUESTRA HUMEDAD POR DISPLAY
+  
   comprobacionYescritura();                                // ACA ESTAN LOS DELAY
+  mostrarHumedad(h);                                       // MUESTRA HUMEDAD POR DISPLAY
   }
 }
 

@@ -21,5 +21,6 @@ VCC    = 5V
 
 //----------DISPLAY LED-------------//
 
-CLK    = 8
-DIO    = 9
+#define CLK 4//pins definitions for TM1637 and can be changed to other ports       
+#define DIO 3
+TM1637 tm1637(CLK,DIO);
