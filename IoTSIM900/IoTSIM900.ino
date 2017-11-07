@@ -7,8 +7,8 @@
 //--------------------DEFINICIONES--------------//
 //-------VARIABLES------//
 File Archivo; 
-int HumMax = 60;                                           // VARIABLE DE HUMEDAD MAXIMA DEFINIDAS POR USUARIO ,PROGRAMA
-int HumMin = 30;                                           // VARIABLE DE HUMEDAD MINIMA DEFINIDAS POR USUARIO ,PROGRAMA
+int HumMax = 50;                                           // VARIABLE DE HUMEDAD MAXIMA DEFINIDAS POR USUARIO ,PROGRAMA
+int HumMin = 10;                                           // VARIABLE DE HUMEDAD MINIMA DEFINIDAS POR USUARIO ,PROGRAMA
 long retardo = 300000;                                     // VARIABLES USADAS PARA DAR TIEMPO ENTRE MENSAJES DE ALERTA (5 MIN), PROGRAMA
 long retardo2 = 300000;
 long minimo;                                               // VARIABLES USADAS PARA PROCEDIMIENTOS DE SEPARAR MAXIMO Y MINIMO DEL "mensaje" , PROGRAMA
@@ -97,7 +97,7 @@ void inicializarTODO()
   delay(1000);
   Serial.println(F("Done.."));
   //-------INICIALIZAMOS SD--------//
-  SD.begin(sd);
+  //SD.begin(sd);
   if (!SD.begin(sd)){                                     // COMPRUEBA QUE SE CONECTO A LA SD
       Serial.println(F("Error de comunicación con la sd"));
    }else{
@@ -205,7 +205,7 @@ void escrituraSD(String aGrabar)                             // FUNCION ESCRITUR
 {
 Archivo = SD.open("datos.txt", FILE_WRITE);
   if (Archivo) { 
-    Archivo.print(aGrabar);
+    Archivo.println(aGrabar);
     Archivo.close();
   } else {
       Serial.println(F("ERROR AL GRABAR"));        // ERROR
