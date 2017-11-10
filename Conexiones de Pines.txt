@@ -1,10 +1,10 @@
  //----------Lector SD---------------//
 
-CS     = 10
-DO     = 12
-DI     = 11
+CS     = 10 verde
+DO     = 12 marron
+DI     = 11 amarillo
 GND    = GND
-CLK    = 13
+CLK    = 13 naranaja
 
 //----------SENSOR HUMEDAD----------//
 

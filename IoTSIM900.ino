@@ -1,3 +1,4 @@
+
 //--------------------LIBRERIAS ----------------//
 #include <SoftwareSerial.h>
 #include <DHT.h>
@@ -7,24 +8,26 @@
 //--------------------DEFINICIONES--------------//
 //-------VARIABLES------//
 File Archivo; 
-int HumMax = 50;                                           // VARIABLE DE HUMEDAD MAXIMA DEFINIDAS POR USUARIO ,PROGRAMA
-int HumMin = 10;                                           // VARIABLE DE HUMEDAD MINIMA DEFINIDAS POR USUARIO ,PROGRAMA
+byte HumMax = 90;                                           // VARIABLE DE HUMEDAD MAXIMA DEFINIDAS POR USUARIO ,PROGRAMA
+byte HumMin = 10;                                           // VARIABLE DE HUMEDAD MINIMA DEFINIDAS POR USUARIO ,PROGRAMA
 long retardo = 300000;                                     // VARIABLES USADAS PARA DAR TIEMPO ENTRE MENSAJES DE ALERTA (5 MIN), PROGRAMA
 long retardo2 = 300000;
-long minimo;                                               // VARIABLES USADAS PARA PROCEDIMIENTOS DE SEPARAR MAXIMO Y MINIMO DEL "mensaje" , PROGRAMA
-long maximo;
+byte minimo;                                               // VARIABLES USADAS PARA PROCEDIMIENTOS DE SEPARAR MAXIMO Y MINIMO DEL "mensaje" , PROGRAMA
+byte maximo;
 char msjCortoCH[11];                                       // VARIABLE USADA PARA PASAR DE STRING A CHAR EL MENSAJE CORTO,PROGRAMA
 float h;                                                   // VARIABLE DONDE ALMACENAMOS LA HUMEDAD,PROGRAMA
 char fecha[12];                                            // VARIABLE USADA PARA OBTENER FECHA Y HORA PARA EL GUARDADO EN LA SD
 String aGrabar;                                            // VARIABLE QUE SE GRABA EN LA SD
 char incoming_char = 0;                                    // VARIABLE QUE ALMACENA LOS CARACTERES QUE RECIBE EL SIM900
 String mensaje = "";                                       // VARIABLE QUE ALMACENA TODOS LOS CARACTERES QUE RECIBE EL SIM900
-String mensajecorto = "";                                  // VARIABLE DONDE GUARDAMOS UNA PARTE DEL "mensaje" SIM900
+//String mensajecorto = "";                                  // VARIABLE DONDE GUARDAMOS UNA PARTE DEL "mensaje" SIM900
 int8_t Digits[4];                                          // PARA DISPLAY
 //---------PINES--------//
-int sd = 10;                                               // PIN DE SD
-TM1637 Display(4, 3);                                      // PINES DE CONEXION DE DISPLAY (CLK,DIO)
-const int DHTPin = 5;                                      // PIN DE SENSOR DE HUMEDAD
+byte verde = 3;                                                 // LED VERDE
+byte rojo = 2;                                                  // LED ROJO
+byte sd = 10;                                               // PIN DE SD
+TM1637 Display(5, 4);                                      // PINES DE CONEXION DE DISPLAY (CLK,DIO)
+const int DHTPin = 6;                                      // PIN DE SENSOR DE HUMEDAD
 //--------MODULOS-------//
 SoftwareSerial SIM900(7, 8);                               // PINES DEL MODULO SIM900
 #define DHTTYPE DHT22                                      // DEFINIMOS QUE MODELO DE DHT ES 
@@ -61,13 +64,14 @@ void loop()
   {
     incoming_char = SIM900.read(); //Guardamos el carácter del GPRS
     //Serial.print(incoming_char); //Mostramos el carácter en el monitor serie
-    mensaje = mensaje + incoming_char ; // Añadimos el carácter leído al mensaje
+    mensaje = mensaje + incoming_char ; // Añadimos el carácter leído al mensaje  
   } else {
       int bandera = mensaje.indexOf("MAX");
       if (bandera >= 0) {
         leer_sms();
         bandera = -1;
       }
+    mensaje = "";
     aGrabar = "";
     aGrabar += dimeFecha();
     aGrabar += HumMax;
@@ -75,6 +79,7 @@ void loop()
     leerHumedad();
     mostrarHumedad(h);                                       // MUESTRA HUMEDAD POR DISPLAY
     comprobacionYescritura();
+    
   }
 }
 
@@ -88,16 +93,18 @@ void inicializarTODO()
   //-------INICIALIZAMOS SIM900--------//
   SIM900.begin(19200);                                    //PUERTO SERIE PARA SIM900
   Serial.println(F("OK"));
-  SIM900.println("AT + CPIN = \"1111\"");                 //COMANDO AT PARA INTRODUCIR PIN DE TARJETA SIM
+  SIM900.println(F("AT + CPIN = \"1111\""));                 //COMANDO AT PARA INTRODUCIR PIN DE TARJETA SIM
   delay(25000);                                           //TIEMPO DE ESPERA PARA BUSQUEDA DE RED
   Serial.println(F("PIN OK"));
   SIM900.print(F("AT+CMGF=1\r"));                         //COMANDO AT QUE CONFIGURA EL SIM900 PARA RECIVIR Y MANDAR MENSAJES
   delay(1000);
-  SIM900.print("AT+CNMI=2,2,0,0,0\r");                    //COMANDO AT PARA EXTRAER LOS MENSAJES DEL SIN900
+  SIM900.print(F("AT+CNMI=2,2,0,0,0\r"));                    //COMANDO AT PARA EXTRAER LOS MENSAJES DEL SIN900
   delay(1000);
   Serial.println(F("Done.."));
+  pinMode(verde, OUTPUT);
+  pinMode(rojo, OUTPUT);
   //-------INICIALIZAMOS SD--------//
-  //SD.begin(sd);
+ 
   if (!SD.begin(sd)){                                     // COMPRUEBA QUE SE CONECTO A LA SD
       Serial.println(F("Error de comunicación con la sd"));
    }else{
@@ -152,6 +159,9 @@ void comprobacionYescritura()
 {
   if ((HumMax > h) and (h > HumMin)){                              // COMPRUEBA SI LA HUMEDAD ESTA EN EL RANGO ACEPTABLE
     //------FUNCIONAMIENTO CORRECTO-----//
+   
+    digitalWrite(verde,HIGH);
+    digitalWrite(rojo,LOW);
     Serial.println(F("HUMEDAD ACEPTABLE"));                         // SI LO ESTA
     aGrabar += "0";                                                 // TERMINA DE ARMAR EL STRING PARA GRABAR
     escrituraSD(aGrabar);                                           // GRABA LA SD
@@ -160,20 +170,24 @@ void comprobacionYescritura()
       }  
     delay(5000);
   } else {
-    //------FUNCIONAMIENTO CORRECTO-----//
+    //------FUNCIONAMIENTO INCORRECTO-----//
+    digitalWrite(verde,LOW);
+    digitalWrite(rojo,HIGH);
     aGrabar += "1";                                                 // TERMINA DE ARMAR EL STRING PARA GRABAR
     escrituraSD(aGrabar);                                           // GRABA EN LA SD
       if (HumMax < h) {                                               // SI LA HUMEDAD ES MAYOR A MAXIMO ?
         Serial.println(F("HUMEDAD POR ENCIMA DEL MAXIMO  "));         // SI LO ES NOS MUESTRA
         if (retardo2 >= retardo) {
-          String msj = "HUMEDAD POR ENCIMA DEL MAxIMO";
+          String aux =(F("Humedad por encima del maximo"));
+          String msj = aux;
           mensaje_sms(msj);
           retardo2 = 0;
         }
       } else {                                                     // SI NO ES MAYOR , ES MENOR
         Serial.println(F("HUMEDAD POR DEBAJO DEL MINIMO "));
         if (retardo2 >= retardo) {
-          String msj = "HUMEDAD POR POR DEBAJO DEL MINIMO";
+          String aux =(F("Humedad por debajo del minimo"));
+          String msj = aux;
           mensaje_sms(msj);
           retardo2 = 0;
         }
@@ -203,7 +217,8 @@ void leerHumedad()                                        // FUNCION : LECTURA D
 
 void escrituraSD(String aGrabar)                             // FUNCION ESCRITURA EN SD
 {
-Archivo = SD.open("datos.txt", FILE_WRITE);
+  
+ Archivo = SD.open("datos.txt", FILE_WRITE);
   if (Archivo) { 
     Archivo.println(aGrabar);
     Archivo.close();
@@ -216,14 +231,17 @@ Archivo = SD.open("datos.txt", FILE_WRITE);
 
 void leer_sms()                                               // FUNCION LEE MSJ
 {
+ 
   if (mensaje.substring(mensaje.length() - 11, mensaje.length() - 8) == "MAX") {
-    mensajecorto = mensaje.substring(mensaje.length() - 11, mensaje.length());
+    
+    mensaje = mensaje.substring(mensaje.length() - 11, mensaje.length());
   } else if (mensaje.substring(mensaje.length() - 12, mensaje.length() - 9) == "MAX") {
-      mensajecorto = mensaje.substring(mensaje.length() - 12, mensaje.length());
+   
+      mensaje = mensaje.substring(mensaje.length() - 12, mensaje.length());
     } else {
       Serial.println(F("ERROR EN MENSAJE CORTO"));
       }
-  mensajecorto.toCharArray(msjCortoCH, 11);
+  mensaje.toCharArray(msjCortoCH, 11);
   char minimo1[1] = "";
   char maximo1[1] = "";
   minimo1[0] = msjCortoCH[8];
@@ -237,9 +255,10 @@ void leer_sms()                                               // FUNCION LEE MSJ
   Serial.println(HumMax);
   Serial.print(F("NUEVO MIM  EN ENTERO:"));
   Serial.println(HumMin);
-  String msj = "RANGO DE HUMEDAD CAMBIADO CON EXITO";
+  String msj = (F("Rango de humedad modificados con exito"));
   mensaje_sms(msj);
   mensaje = "";
+  
 }
 //-----------------------------------------------//
 void caInt(const char *maxx, const char *minn)
@@ -267,7 +286,7 @@ void caInt(const char *maxx, const char *minn)
 void mensaje_sms(String msj)
 {
   Serial.println(F("Enviando SMS..."));
-  SIM900.println("AT+CMGS=\"3794000826\"");                            //COMANDO AT DEFINE EL NUMERO A MANDAR EL MSJ
+  SIM900.println(F("AT+CMGS=\"3794000826\""));                            //COMANDO AT DEFINE EL NUMERO A MANDAR EL MSJ
   delay(1000);
   SIM900.println(msj);                                                 //TEXTO DEL SMS
   SIM900.println((char)26);                                            //COMANDO DE FINALIZACION ^Z
